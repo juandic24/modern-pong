@@ -4,16 +4,16 @@ public class IAPaddle : MonoBehaviour
 {
     [Header("References")]
     private Transform ballTransform;
-    private Rigidbody2D ballRb;
+    private BallBounceController ballBounce;
 
     [Header("Difficulty")]
     public float speed = 5f;
     public float maxError = 0.5f;
-    public float deadZone = 0.3f;
+    public float deadZone = 0.05f; // menor para suavizar movimiento
 
     [Header("Bounds")]
     [SerializeField] private float topLimit = 4f;
-    [SerializeField] private float bottomLimit = -4f;
+    [SerializeField] private float bottomLimit = -2.05f;
 
     [Header("Error Timing")]
     [SerializeField] private float errorUpdateTime = 0.5f;
@@ -34,36 +34,37 @@ public class IAPaddle : MonoBehaviour
     public void SetBall(GameObject ballInstance)
     {
         ballTransform = ballInstance.transform;
-        ballRb = ballInstance.GetComponent<Rigidbody2D>();
+        ballBounce = ballInstance.GetComponent<BallBounceController>();
     }
 
     void Update()
     {
-        if (ballTransform == null || ballRb == null) return;
+        if (ballTransform == null || ballBounce == null) return;
 
-        // Ignore ball if it's moving away
-        if (ballRb.linearVelocity.x < 0) return;
-
-        // Update AI error periodically
+        // Actualizar error de la IA periódicamente
         errorTimer -= Time.deltaTime;
-
         if (errorTimer <= 0f)
         {
             currentError = Random.Range(-maxError, maxError);
             errorTimer = errorUpdateTime;
         }
 
-        float perceivedBallY = ballTransform.position.y + currentError;
+        // Solo moverse si la bola se está acercando a este paddle
+        float ballDirX = ballBounce.Direction.x;
+        bool ballApproaching = (transform.position.x - ballTransform.position.x) * ballDirX >= 0f;
 
-        float diff = perceivedBallY - transform.position.y;
+        if (ballApproaching)
+        {
+            float perceivedBallY = Mathf.Clamp(ballTransform.position.y + currentError, bottomLimit, topLimit);
 
-        if (Mathf.Abs(diff) < deadZone) return;
+            if (Mathf.Abs(transform.position.y - perceivedBallY) > deadZone)
+            {
+                Vector3 targetPosition = new Vector3(transform.position.x, perceivedBallY, transform.position.z);
+                transform.position = Vector3.MoveTowards(transform.position, targetPosition, speed * Time.deltaTime);
+            }
+        }
 
-        float direction = Mathf.Sign(diff);
-
-        transform.Translate(Vector3.up * direction * speed * Time.deltaTime);
-
-        // Clamp position to stay in bounds
+        // Clamp siempre aplicado, sin importar si la bola se acerca o no
         float clampedY = Mathf.Clamp(transform.position.y, bottomLimit, topLimit);
         transform.position = new Vector3(transform.position.x, clampedY, transform.position.z);
     }

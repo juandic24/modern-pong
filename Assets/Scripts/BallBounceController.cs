@@ -13,15 +13,42 @@ public class BallBounceController : MonoBehaviour
 
     private float currentSpeed;
     private Vector2 direction;
+    public Vector2 Direction => direction;
+
+    private Rigidbody2D rb;
+    private float topBound;
+    private float bottomBound;
+
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
 
     void Start()
     {
+        topBound    = GameObject.FindWithTag("TopWall").GetComponent<Collider2D>().bounds.min.y;
+        bottomBound = GameObject.FindWithTag("BottomWall").GetComponent<Collider2D>().bounds.max.y;
         ResetBall();
     }
 
-    void Update()
+    void FixedUpdate()
     {
-        transform.position += (Vector3)(direction * currentSpeed * Time.deltaTime);
+        Vector2 newPos = rb.position + direction * currentSpeed * Time.fixedDeltaTime;
+
+        if (newPos.y >= topBound)
+        {
+            newPos.y = 2f * topBound - newPos.y;
+            direction.y = -Mathf.Abs(direction.y);
+            direction = EnforceMinimumVertical(direction);
+        }
+        else if (newPos.y <= bottomBound)
+        {
+            newPos.y = 2f * bottomBound - newPos.y;
+            direction.y = Mathf.Abs(direction.y);
+            direction = EnforceMinimumVertical(direction);
+        }
+
+        rb.MovePosition(newPos);
     }
 
     public void ResetBall()
@@ -40,12 +67,6 @@ public class BallBounceController : MonoBehaviour
         {
             IncreaseSpeed();
             BounceFromPaddle(collision.transform);
-        }
-        else if (collision.gameObject.CompareTag("TopWall") ||
-                 collision.gameObject.CompareTag("BottomWall"))
-        {
-            direction.y *= -1f;
-            direction = EnforceMinimumVertical(direction);
         }
     }
 
@@ -72,7 +93,6 @@ public class BallBounceController : MonoBehaviour
         );
 
         direction = EnforceMinimumVertical(direction);
-        direction.Normalize();
     }
 
     Vector2 EnforceMinimumVertical(Vector2 dir)

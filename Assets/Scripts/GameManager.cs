@@ -61,9 +61,9 @@ public class GameManager : MonoBehaviour
 
 
             case DifficultyLevel.Hard:
-                iaPaddle.speed = 7f;
-                iaPaddle.maxError = 0.1f;
-                iaPaddle.deadZone = 0.05f;
+                iaPaddle.speed = 6f;
+                iaPaddle.maxError = 0.3f;
+                iaPaddle.deadZone = 0.1f;
                 break;
 
         }
